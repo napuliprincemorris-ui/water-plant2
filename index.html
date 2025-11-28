@@ -1,40 +1,189 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Plant Watering Reminder</title>
-<link rel="stylesheet" href="style.css">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4e9af1">
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f7fb; margin: 0; padding: 20px; color: #333; }
+  .app { max-width: 450px; margin: auto; background: #fff; padding: 20px; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+  h1 { text-align: center; margin-bottom: 10px; }
+  .input, select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ccc; margin-bottom: 12px; }
+  button { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #79a9ff; color: white; font-size: 16px; cursor: pointer; margin-bottom: 10px; }
+  #clearAll { background: #ff6b7c; }
+  .reminder { background: #f1f4ff; padding: 12px; border-radius: 12px; margin-bottom: 10px; position: relative; }
+  .tree-icon { font-size: 24px; margin-right: 6px; }
+  .growth { margin-top: 10px; font-size: 14px; }
+  .reward-section { background: #e0ffe0; padding: 12px; border-radius: 12px; margin-top: 20px; }
+  .progress-bar { height: 8px; border-radius: 4px; background: #d1f5d3; margin-top: 6px; }
+  .progress-fill { height: 100%; background: #79d17b; border-radius: 4px; width: 0%; transition: width 0.3s; }
+  .bonus-message { background: #fff8c6; padding: 12px; border-radius: 12px; margin-top: 15px; font-weight: bold; text-align: center; color: #ff9900; }
+  #clock { text-align: center; font-size: 18px; margin-bottom: 12px; font-weight: bold; }
+  .datetime-input { display: flex; gap: 5px; margin-bottom: 12px; }
+  .datetime-input input { flex: 1; }
+</style>
 </head>
 <body>
 <div class="app">
-  <header>
-    <h1>Plant Watering Reminder</h1>
-    <div class="clock" id="clock">--:--:--</div>
-  </header>
-  <main>
-    <form id="reminderForm">
-      <textarea id="text" placeholder="Reminder: Water plant..."></textarea>
-      <input type="datetime-local" id="datetime">
-      <select id="category">
-        <option value="indoor">Indoor</option>
-        <option value="outdoor">Outdoor</option>
-      </select>
-      <input type="number" id="waterAmount" placeholder="ml water">
-      <button type="submit">Add</button>
-    </form>
-    <ul id="list"></ul>
-  </main>
+  <h1>🌱 Plant Watering Reminder</h1>
+  <div id="clock">--:--:--</div>
+
+  <label>Choose Tree</label>
+  <select id="treeSelect" class="input">
+    <option value="narra" data-frequency="7" data-icon="🌳">Narra</option>
+    <option value="molave" data-frequency="5" data-icon="🌲">Molave</option>
+    <option value="acacia" data-frequency="6" data-icon="🌴">Acacia</option>
+    <option value="balete" data-frequency="3" data-icon="🌿">Balete</option>
+    <option value="ipil" data-frequency="4" data-icon="🍃">Ipil-ipil</option>
+  </select>
+
+  <label>Set Date & Time</label>
+  <div class="datetime-input">
+    <input type="date" id="reminderDate" class="input" />
+    <input type="time" id="reminderTime" class="input" />
+  </div>
+
+  <label>Water Amount (ml)</label>
+  <select id="waterAmount" class="input"></select>
+
+  <button id="addBtn">Add Reminder</button>
+  <button id="clearAll">Clear All</button>
+
+  <h2>Reminders</h2>
+  <div id="reminderList"></div>
+
+  <div class="reward-section">
+    <h3>Total Points: <span id="totalPoints">0</span></h3>
+    <div id="rewardsList"></div>
+  </div>
+
+  <div class="bonus-message">
+    Kaya mo bang i-achieve ang 100 points? Kung oo, magkakaroon ka ng libreng school supplies mula sa amin! Sabihan mo lang kami, ha? Salamat! Sama-sama nating alagaan ang Kalikasan!
+  </div>
 </div>
-<audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
-<script src="script.js"></script>
+
 <script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('./sw.js');
+// Clock
+function updateClock(){
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  const s = String(now.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent = `${h}:${m}:${s}`;
 }
+setInterval(updateClock, 1000);
+updateClock();
+
+// Populate ML choices
+const ml = document.getElementById('waterAmount');
+for (let i = 100; i <= 2500; i += 100) {
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = i + ' ml';
+  ml.appendChild(opt);
+}
+
+const treeSelect = document.getElementById('treeSelect');
+const reminderList = document.getElementById('reminderList');
+const addBtn = document.getElementById('addBtn');
+const clearAll = document.getElementById('clearAll');
+const totalPointsEl = document.getElementById('totalPoints');
+const rewardsList = document.getElementById('rewardsList');
+
+const reminderDate = document.getElementById('reminderDate');
+const reminderTime = document.getElementById('reminderTime');
+
+let reminders = JSON.parse(localStorage.getItem('reminders')) || [];
+let growthData = JSON.parse(localStorage.getItem('growthData')) || {};
+let totalPoints = Number(localStorage.getItem('totalPoints')) || 0;
+let rewardsEarned = JSON.parse(localStorage.getItem('rewardsEarned')) || [];
+
+function getLevel(points){
+  if(points < 3) return 'Seedling';
+  if(points < 6) return 'Growing';
+  if(points < 10) return 'Mature';
+  return 'Giant';
+}
+
+function getReward(points){
+  if(points === 3) return '🌟 Mini Gardener Badge';
+  if(points === 6) return '🏅 Tree Keeper Medal';
+  if(points === 10) return '🌳 Forest Guardian Trophy';
+  return '';
+}
+
+function updateRewards(){
+  totalPointsEl.textContent = totalPoints;
+  rewardsList.innerHTML = '';
+  rewardsEarned.forEach(r => {
+    const div = document.createElement('div');
+    div.textContent = r;
+    rewardsList.appendChild(div);
+  });
+  localStorage.setItem('totalPoints', totalPoints);
+  localStorage.setItem('rewardsEarned', JSON.stringify(rewardsEarned));
+}
+
+function renderReminders(){
+  reminderList.innerHTML = '';
+  reminders.forEach(rem => {
+    const box = document.createElement('div');
+    box.className = 'reminder';
+    box.innerHTML = `
+      <div><span class='tree-icon'>${rem.icon}</span><strong>${rem.tree}</strong> (${rem.level})</div>
+      Water every ${rem.freq} days • ${rem.amount} ml<br>
+      Set for: ${rem.date} ${rem.time}
+      <div class='progress-bar'><div class='progress-fill' style='width:${Math.min(rem.points*10,100)}%'></div></div>
+    `;
+    reminderList.appendChild(box);
+  });
+}
+
+addBtn.addEventListener('click', ()=>{
+  const selected = treeSelect.selectedOptions[0];
+  const tree = selected.textContent;
+  const icon = selected.getAttribute('data-icon');
+  const freq = selected.getAttribute('data-frequency');
+  const amount = ml.value;
+  const date = reminderDate.value;
+  const time = reminderTime.value;
+
+  if(!tree || !date || !time) return alert('Please select tree and set date & time');
+
+  if(!growthData[tree]) growthData[tree] = 0;
+  growthData[tree] += 1;
+  totalPoints += 1;
+
+  const level = getLevel(growthData[tree]);
+  const reward = getReward(growthData[tree]);
+  if(reward && !rewardsEarned.includes(reward)) rewardsEarned.push(reward);
+
+  reminders.push({tree, icon, freq, amount, date, time, level, points:growthData[tree]});
+
+  localStorage.setItem('reminders', JSON.stringify(reminders));
+  localStorage.setItem('growthData', JSON.stringify(growthData));
+
+  renderReminders();
+  updateRewards();
+});
+
+clearAll.addEventListener('click', ()=>{
+  reminders = [];
+  growthData = {};
+  totalPoints = 0;
+  rewardsEarned = [];
+  localStorage.removeItem('reminders');
+  localStorage.removeItem('growthData');
+  localStorage.removeItem('totalPoints');
+  localStorage.removeItem('rewardsEarned');
+  renderReminders();
+  updateRewards();
+});
+
+
+// Initialize
+renderReminders();
+updateRewards();
 </script>
 </body>
 </html>
