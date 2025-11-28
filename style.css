@@ -1,0 +1,9 @@
+
+/* Modern CSS with card layout, responsive, dark mode */
+body{font-family:Arial,sans-serif;background:#f0f3f7;color:#111;display:flex;justify-content:center;padding:20px;}
+.app{max-width:960px;width:100%;}
+header{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:20px;}
+.clock{font-size:20px;color:#4e9af1;}
+textarea,input,select,button{padding:10px;margin:5px;border-radius:12px;}
+button{background:#4e9af1;color:white;border:none;cursor:pointer;}
+.list{list-style:none;margin-top:20px;}

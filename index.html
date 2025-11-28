@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant Watering Reminder</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4e9af1">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Plant Watering Reminder</h1>
+    <div class="clock" id="clock">--:--:--</div>
+  </header>
+  <main>
+    <form id="reminderForm">
+      <textarea id="text" placeholder="Reminder: Water plant..."></textarea>
+      <input type="datetime-local" id="datetime">
+      <select id="category">
+        <option value="indoor">Indoor</option>
+        <option value="outdoor">Outdoor</option>
+      </select>
+      <input type="number" id="waterAmount" placeholder="ml water">
+      <button type="submit">Add</button>
+    </form>
+    <ul id="list"></ul>
+  </main>
+</div>
+<audio id="ringtone" src="https://actions.google.com/sounds/v1/alarms/alarm_clock.ogg" preload="auto"></audio>
+<script src="script.js"></script>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
